@@ -5,5 +5,7 @@ namespace BlazorApp_Adance_signalR.Hubs
     public interface IChatHub
     {
         Task Notification(Message message);
+
+        Task ForAll(Message message);
     }
 }

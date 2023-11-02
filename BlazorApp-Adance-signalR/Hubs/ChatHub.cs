@@ -12,6 +12,9 @@ public class ChatHub : Hub<IChatHub>
         var user = Context.User;
 
         await Clients.User(message.UserId).Notification(message);
-        Console.WriteLine(message);
+        // Console.WriteLine(message);
     }
+
+    public async ValueTask ToAll(Message message)
+        => await Clients.Others.ForAll(message);
 }

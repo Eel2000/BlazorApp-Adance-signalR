@@ -1,70 +1,132 @@
 ﻿@page "/"
 @using BlazorApp_Adance_signalR.Data;
 @using BlazorApp_Adance_signalR.Hubs;
+@using Microsoft.AspNetCore.Identity;
 @using Microsoft.AspNetCore.SignalR.Client;
 @using System.Net;
+@using System.Collections.ObjectModel;
 
 @*@inject IHubContext<ChatHub, IChatHub> hub*@
 @inject NavigationManager Navigation
+@inject UserManager<IdentityUser> userManager
+
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <div class="row">
+
+            <div class="col-6">
+                @if (selectedUser is not null)
+                {
+                    <h2 class="mb-2"> Send message to <span class="text-primary fw-bolder">@selectedUser?.UserName </span></h2>
+
+                    <EditForm Model="message" OnSubmit="SendMessage">
+                        <input @bind="message"/>
+                        <input type="submit" value="Send"/>
+                    </EditForm>
+
+                    <ul>
+                        @if (_messages.Any())
+                        {
+                            foreach (var message in _messages)
+                            {
+                                <li>
+                                    @message?.Content <span> @message.SentAt.ToString("g")</span>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <p>No messages</p>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <h2>Please select user to send message to</h2>
+                }
 
 
-<PageTitle>Index</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
-<button class="btn btn-primary" @onclick="(async()=>await SendTest())">Send test message</button>
-
-<SurveyPrompt Title="How is Blazor working for you?" />
+            </div>
+            <div class="col-6">
+                @foreach (var user in _users)
+                {
+                    <div class="col-2 d-flex" style="display: inline;">
+                        <h5>@user.UserName</h5>
+                        <a class="btn btn-success text-white fw-bold" @onclick="() => SelectUser(user)">Select</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
 
 
 @code {
+
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     HubConnection? hubConnection;
 
+
+    string? message = String.Empty;
+    List<IdentityUser> _users = new();
+    IdentityUser? selectedUser = default;
+    ObservableCollection<Message> _messages = new();
+
+
     protected override async Task OnInitializedAsync()
     {
+        var authenticateState = await authenticationStateTask!;
+        var users = userManager.Users.Where(x => x.Email != authenticateState.User.Identity.Name);
+        _users = new(users);
 
         var cookieContainer = new CookieContainer();
 
         var cookie = new Cookie()
-            {
-                Name = ".aspnetcore.identity.application",
-                Domain = "localhost",
-                Value = CookieProvider.Cookie
-            };
+        {
+            Name = ".aspnetcore.identity.application",
+            Domain = "localhost",
+            Value = CookieProvider.Cookie
+        };
         cookieContainer.Add(cookie);
 
         hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/chat"), options =>
+            .WithUrl(Navigation.ToAbsoluteUri("/chat"), options =>
+            {
+                options.Cookies = cookieContainer;
+
+                options.HttpMessageHandlerFactory = (msg) =>
                 {
-                    options.Cookies = cookieContainer;
-
-                    options.HttpMessageHandlerFactory = (msg) =>
+                    if (msg is HttpClientHandler clientHandler)
                     {
-                        if (msg is HttpClientHandler clientHandler)
-                        {
-                            // bypass SSL certificate
-                            clientHandler.ServerCertificateCustomValidationCallback +=
+                        clientHandler.ServerCertificateCustomValidationCallback +=
                             (sender, certificate, chain, sslPolicyErrors) => { return true; };
-                        }
+                    }
 
-                        return msg;
-                    };
-                })
-                .WithAutomaticReconnect()
-                .Build();
+                    return msg;
+                };
+            })
+            .WithAutomaticReconnect()
+            .Build();
 
         hubConnection.On<Message>("Notification", (msg) =>
         {
-            Console.WriteLine("message recived" + msg);
+            _messages.Add(msg);
+            _messages = new(_messages);
+            InvokeAsync(StateHasChanged);
         });
 
         await hubConnection.StartAsync();
     }
+
+
+    void SelectUser(IdentityUser user)
+    {
+        selectedUser = user;
+        StateHasChanged();
+    }
+
 
     async ValueTask SendTest()
     {
@@ -72,16 +134,39 @@ Welcome to your new app.
 
 
         var message = new Message()
-            {
-                SenderId = authenticateState?.User?.Identity?.Name,
-                UserId = "17mk@esisalama.org",
-                Content = "Test",
-                Id = Guid.NewGuid()
-            };
+        {
+            SenderId = authenticateState?.User?.Identity?.Name,
+            UserId = "17mk@esisalama.org",
+            Content = "Test",
+            Id = Guid.NewGuid()
+        };
 
 
         await hubConnection.SendAsync("MessageThem", message);
 
-        //await hub.Clients.User(message.UserId).Notification(message);
+    //await hub.Clients.User(message.UserId).Notification(message);
     }
+
+    async Task SendMessage()
+    {
+        var authenticateState = await authenticationStateTask!;
+
+        if (selectedUser is not null)
+        {
+            Message? message = new()
+            {
+                UserId = selectedUser.Email,
+                Content = this.message,
+                SenderId = authenticateState.User.Identity.Name,
+                SentAt = DateTime.Now,
+                Id = Guid.NewGuid()
+            };
+
+
+            await hubConnection?.SendAsync("MessageThem", message);
+            this.message = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
 }

@@ -79,11 +79,11 @@
         _users = new(users);
 
         var cookieContainer = new CookieContainer();
-
+        var url = Navigation.ToAbsoluteUri("/chat");
         var cookie = new Cookie()
         {
             Name = ".aspnetcore.identity.application",
-            Domain = "localhost",
+            Domain = url.Host,
             Value = CookieProvider.Cookie
         };
         cookieContainer.Add(cookie);

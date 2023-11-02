@@ -1,0 +1,34 @@
+﻿<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <Redirect />
+                </NotAuthorized>
+                <Authorizing>
+                    <h1>Authentication...</h1>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+
+@code {
+    [Parameter]
+    public string Cookie { get; set; }
+
+    protected override void OnInitialized()
+    {
+        CookieProvider.Cookie = Cookie;
+
+        base.OnInitialized();
+    }
+}

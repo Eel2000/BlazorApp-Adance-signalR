@@ -1,0 +1,23 @@
+﻿@inject NavigationManager Navigation
+
+<h3 class="d-xxl-flex justify-content-center text-bg-danger">Redireccting...</h3>
+
+@code {
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authenticateState = await authenticationStateTask!;
+        if (authenticateState?.User?.Identity is null || !authenticateState.User.Identity.IsAuthenticated)
+        {
+            var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+            if (string.IsNullOrWhiteSpace(returnUrl))
+                Navigation.NavigateTo("/Identity/Account/Login");
+            else
+                Navigation.NavigateTo($"/Identity/Account/Login?returnUrl={returnUrl}", true);
+        }
+    }
+
+}

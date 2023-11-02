@@ -1,0 +1,36 @@
+﻿@inherits LayoutComponentBase
+
+
+<AuthorizeView>
+    <NotAuthorized>
+        <PageTitle> UnAuthorized</PageTitle>
+        <main>
+            <h1>You're no authorized to access this resources</h1>
+        </main>
+        <Redirect />
+    </NotAuthorized>
+
+    <Authorized>
+        <PageTitle>BlazorApp-Adance-signalR</PageTitle>
+
+        <div class="page">
+            <div class="sidebar">
+                <NavMenu />
+            </div>
+
+            <main>
+                <div class="top-row px-4">
+                    <a href="Identity/Account/Manage">Hello, @context.User.Identity?.Name!</a>
+                    <form method="post" action="Identity/Account/Logout">
+                        <button type="submit" class="nav-link btn btn-link">Log out</button>
+                    </form>
+                    <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+                </div>
+
+                <article class="content px-4">
+                    @Body
+                </article>
+            </main>
+        </div>
+    </Authorized>
+</AuthorizeView>

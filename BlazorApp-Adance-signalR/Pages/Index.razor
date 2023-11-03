@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using Humanizer
 
 
 @*@inject IHubContext<ChatHub, IChatHub> hub*@
@@ -8,68 +9,91 @@
 <AuthorizeView>
     <Authorized Context="authContext">
         <div class="row">
-            <div class="col-3">
+            <div class="col-3 list-group">
                 @foreach (var user in _users)
                 {
-                    <div class="col d-flex m-1 btn btn-outline-success fw-bold" @onclick="() => SelectUser(user)" style="display: inline;">
+                    <div class="list-group-item list-group-item-action border border-0 border-bottom" @onclick="() => SelectUser(user)" style="display: inline;">
                         <h5>@user.UserName</h5>
                     </div>
                 }
             </div>
-            <div class="col-9">
+            <div class="col-9 border-start --dark-theme" id="chat">
                 <div>
                     <h2 class="mb-2">
-                        <span class="text-primary fw-bolder">@selectedUser?.UserName </span>
+                        <span class="text-success fw-lighter">@selectedUser?.UserName.Split("@")[0].Pascalize() </span>
                     </h2>
                     <hr/>
                 </div>
-                <div id="chat-history">
-                    <ul id="chat-history-messages">
-                        @if (_messages.Any())
+                <div class="chat__conversation-board">
+                    @if (_messages.Any())
+                    {
+                        foreach (var message in _messages)
                         {
-                            foreach (var message in _messages)
+                            if (message.SenderId != authContext.User.Identity.Name)
                             {
-                                @if (message.SenderId != authContext?.User?.Identity?.Name)
-                                {
-                                    <li class="alert-primary mt-4 chat-message-in">
-                                        <div class="col-4">
-                                            <h5 class="text-warning fw-bolder mx-2">@message.SenderId</h5>
-                                            <p class="fw-light text-black-50 mx-2">
-                                                @message?.Content
-                                            </p>
-
-                                            <h6 class="text-info fw-lighter mx-2"> @message.SentAt.ToShortTimeString()</h6>
+                                <div class="chat__conversation-board__message-container">
+                                    <div class="chat__conversation-board__message__person">
+                                        <div class="chat__conversation-board__message__person__avatar">
+                                            <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Monika Figi">
+                                        </div><span class="chat__conversation-board__message__person__nickname">@message.UserId</span>
+                                    </div>
+                                    <div class="chat__conversation-board__message__context">
+                                        <div class="chat__conversation-board__message__bubble">
+                                            <span>@message.Content</span>
                                         </div>
-                                    </li>
-                                }
-                                else
-                                {
-                                    <li class="alert-info mt-4 chat-message-out">
-                                        <div class="col-4">
-                                            <h5 class="text-warning fw-bolder mx-2">@message.SenderId</h5>
-                                            <p class="fw-light text-black-50 mx-2">
-                                                @message?.Content
-                                            </p>
-
-                                            <h6 class="text-info fw-lighter mx-2"> @message.SentAt.ToShortTimeString()</h6>
+                                    </div>
+                                    <div class="chat__conversation-board__message__options">
+                                       <span class="text-white" style="font-size: 12px;">@message.SentAt.Humanize()</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chat__conversation-board__message-container reversed">
+                                    <div class="chat__conversation-board__message__person">
+                                        <div class="chat__conversation-board__message__person__avatar">
+                                            <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Dennis Mikle">
                                         </div>
-                                    </li>
-                                }
-                               
+                                        <span class="chat__conversation-board__message__person__nickname">@message.SenderId</span>
+                                    </div>
+                                    <div class="chat__conversation-board__message__context">
+                                        <div class="chat__conversation-board__message__bubble">
+                                            <span>@message.Content</span>
+                                        </div>
+                                    </div>
+                                    <div class="chat__conversation-board__message__options">
+                                        <span class="text-white" style="font-size: 12px;">@message.SentAt.Humanize()</span>
+                                    </div>
+                                </div>
                             }
                         }
-                        else
-                        {
-                            <p>No messages</p>
-                        }
-                    </ul>
+                    }
                 </div>
 
-                <div id="input-message">
-                    <EditForm Model="message" OnSubmit="SendMessage" class="d-flex">
-                        <input @bind="message" class="form-control p-2" placeholder="type your message here..."/>
-                        <input type="submit" value="Send" class="btn btn-secondary"/>
-                    </EditForm>
+                <div class="chat__conversation-panel">
+                    <div class="chat__conversation-panel__container">
+                        <button class="chat__conversation-panel__button panel-item btn-icon add-file-button">
+                            <svg class="feather feather-plus sc-dnqmqq jxshSx" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button class="chat__conversation-panel__button panel-item btn-icon emoji-button">
+                            <svg class="feather feather-smile sc-dnqmqq jxshSx" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                            </svg>
+                        </button>
+                        <input class="chat__conversation-panel__input panel-item" placeholder="Type a message...">
+                        <button class="chat__conversation-panel__button panel-item btn-icon send-message-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-reactid="1036">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
 

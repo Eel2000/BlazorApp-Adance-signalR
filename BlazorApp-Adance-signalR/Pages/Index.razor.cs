@@ -45,6 +45,7 @@ public partial class Index : ComponentBase, IDisposable
     private void MessagesOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         _messages = new(_messages);
+        Console.WriteLine("updated");
         InvokeAsync(StateHasChanged);
     }
 
@@ -146,8 +147,9 @@ public partial class Index : ComponentBase, IDisposable
         selectedUser = user;
 
         var conversations =
-            _conversations.FirstOrDefault(c => c.StarterId == authenticationState?.User?.Identity?.Name
-                                               && c.ReceiverId == selectedUser.Email);
+            _conversations.FirstOrDefault(c => (c.StarterId == authenticationState?.User?.Identity?.Name
+                                               && c.ReceiverId == selectedUser.Email) || 
+                                               c.ReceiverId == authenticationState?.User?.Identity?.Name);
 
         if (conversations is not null)
             _messages = new(conversations?.Messages);
@@ -185,6 +187,7 @@ public partial class Index : ComponentBase, IDisposable
             {
                 await hubConnection?.SendAsync("MessageThem", msg)!;
                 conversation.Messages.Add(msg);
+                _messages = new(conversation.Messages);
             }
 
             this.message = string.Empty;

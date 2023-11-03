@@ -1,87 +1,89 @@
 ﻿@page "/"
-@using BlazorApp_Adance_signalR.Data;
-@using BlazorApp_Adance_signalR.Hubs;
-@using Microsoft.AspNetCore.SignalR.Client;
-@using System.Net;
+@using Humanizer
+
 
 @*@inject IHubContext<ChatHub, IChatHub> hub*@
 @inject NavigationManager Navigation
+@inject UserManager<IdentityUser> userManager
 
-
-<PageTitle>Index</PageTitle>
-
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
-
-<button class="btn btn-primary" @onclick="(async()=>await SendTest())">Send test message</button>
-
-<SurveyPrompt Title="How is Blazor working for you?" />
-
-
-@code {
-    [CascadingParameter]
-    private Task<AuthenticationState>? authenticationStateTask { get; set; }
-
-    HubConnection? hubConnection;
-
-    protected override async Task OnInitializedAsync()
-    {
-
-        var cookieContainer = new CookieContainer();
-
-        var cookie = new Cookie()
-            {
-                Name = ".aspnetcore.identity.application",
-                Domain = "localhost",
-                Value = CookieProvider.Cookie
-            };
-        cookieContainer.Add(cookie);
-
-        hubConnection = new HubConnectionBuilder()
-                .WithUrl(Navigation.ToAbsoluteUri("/chat"), options =>
+<AuthorizeView>
+    <Authorized Context="authContext">
+        <div class="row">
+            <div class="col-3 list-group">
+                @foreach (var user in _users)
                 {
-                    options.Cookies = cookieContainer;
-
-                    options.HttpMessageHandlerFactory = (msg) =>
+                    <div class="list-group-item list-group-item-action border border-0 border-bottom" @onclick="() => SelectUser(user)" style="display: inline;">
+                        <h5>@user.UserName</h5>
+                    </div>
+                }
+            </div>
+            <div class="col-9 border-start --dark-theme" id="chat">
+                <div>
+                    <h2 class="mb-2">
+                        <span class="text-success fw-lighter">@selectedUser?.UserName.Split("@")[0].Humanize() </span>
+                    </h2>
+                    <hr/>
+                </div>
+                <div class="chat__conversation-board">
+                    @if (_messages.Any())
                     {
-                        if (msg is HttpClientHandler clientHandler)
+                        foreach (var message in _messages)
                         {
-                            // bypass SSL certificate
-                            clientHandler.ServerCertificateCustomValidationCallback +=
-                            (sender, certificate, chain, sslPolicyErrors) => { return true; };
+                            if (message.SenderId != authContext.User.Identity.Name)
+                            {
+                                <div class="chat__conversation-board__message-container">
+                                    <div class="chat__conversation-board__message__person">
+                                        <div class="chat__conversation-board__message__person__avatar">
+                                            <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Monika Figi">
+                                        </div><span class="chat__conversation-board__message__person__nickname">@message.UserId</span>
+                                    </div>
+                                    <div class="chat__conversation-board__message__context">
+                                        <div class="chat__conversation-board__message__bubble">
+                                            <span>@message.Content</span>
+                                        </div>
+                                    </div>
+                                    <div class="chat__conversation-board__message__options">
+                                        <span class="text-white" style="font-size: 12px;">@message.SentAt.Humanize()</span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chat__conversation-board__message-container reversed">
+                                    <div class="chat__conversation-board__message__person">
+                                        <div class="chat__conversation-board__message__person__avatar">
+                                            <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="Dennis Mikle">
+                                        </div>
+                                        <span class="chat__conversation-board__message__person__nickname">@message.SenderId</span>
+                                    </div>
+                                    <div class="chat__conversation-board__message__context">
+                                        <div class="chat__conversation-board__message__bubble">
+                                            <span>@message.Content</span>
+                                        </div>
+                                    </div>
+                                    <div class="chat__conversation-board__message__options">
+                                        <span class="text-white" style="font-size: 12px;">@message.SentAt.Humanize()</span>
+                                    </div>
+                                </div>
+                            }
                         }
+                    }
+                </div>
 
-                        return msg;
-                    };
-                })
-                .WithAutomaticReconnect()
-                .Build();
-
-        hubConnection.On<Message>("Notification", (msg) =>
-        {
-            Console.WriteLine("message recived" + msg);
-        });
-
-        await hubConnection.StartAsync();
-    }
-
-    async ValueTask SendTest()
-    {
-        var authenticateState = await authenticationStateTask!;
+                <div class="chat__conversation-panel">
+                    <div class="chat__conversation-panel__container">
+                        <input @bind="message" class="chat__conversation-panel__input panel-item" placeholder="Type a message...">
+                        <button type="submit" @onclick="SendMessage" class="chat__conversation-panel__button panel-item btn-icon send-message-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-reactid="1036">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
 
-        var message = new Message()
-            {
-                SenderId = authenticateState?.User?.Identity?.Name,
-                UserId = "17mk@esisalama.org",
-                Content = "Test",
-                Id = Guid.NewGuid()
-            };
-
-
-        await hubConnection.SendAsync("MessageThem", message);
-
-        //await hub.Clients.User(message.UserId).Notification(message);
-    }
-}
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>

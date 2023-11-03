@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Net;
 using BlazorApp_Adance_signalR.Data;
+using BlazorApp_Adance_signalR.States;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,8 @@ public partial class Index : ComponentBase, IDisposable
     [CascadingParameter] private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     [Inject] public AuthenticationDbContext? Context { get; set; }
+
+    [Inject] public SessionAppState? State { get; set; }
 
     HubConnection? hubConnection;
     private AuthenticationState? authenticationState;
@@ -48,9 +51,12 @@ public partial class Index : ComponentBase, IDisposable
     private void ConversationsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         _conversations = new(_conversations);
+
+        foreach (var conversation in _conversations)
+            State?.Conversations.Add(conversation);
+
         InvokeAsync(StateHasChanged);
     }
-
 
     async ValueTask BuildConnectionAsync()
     {
@@ -103,12 +109,18 @@ public partial class Index : ComponentBase, IDisposable
             {
                 _messages.Add(msg);
                 _messages = new(_messages.OrderBy(x => x.SentAt));
+
+                State?.Messages.Add(msg);
+
                 InvokeAsync(StateHasChanged);
             });
 
             hubConnection?.On<Message>("ForAll", (msg) =>
             {
                 _messages.Add(msg);
+
+                State?.Messages.Add(msg);
+
                 InvokeAsync(StateHasChanged);
             });
 
@@ -132,34 +144,85 @@ public partial class Index : ComponentBase, IDisposable
     void SelectUser(IdentityUser user)
     {
         selectedUser = user;
+
+        var conversations =
+            _conversations.FirstOrDefault(c => c.StarterId == authenticationState?.User?.Identity?.Name
+                                               && c.ReceiverId == selectedUser.Email);
+
+        if (conversations is not null)
+            _messages = new(conversations?.Messages);
+        else
+        {
+            _messages = new();
+        }
+
         StateHasChanged();
     }
 
     async Task SendMessage()
     {
-        // var authenticateState = await authenticationStateTask!;
-
-
-        Message? message = new()
+        try
         {
-            UserId = selectedUser?.Email,
-            Content = this.message,
-            SenderId = authenticationState?.User?.Identity?.Name,
-            SentAt = DateTime.Now,
-            Id = Guid.NewGuid()
-        };
+            // var authenticateState = await authenticationStateTask!;
 
-        if (selectedUser is null)
-        {
-            await hubConnection?.SendAsync("ToAll", message);
+            var conversation = await StartNewConversationIfNotExist(selectedUser.Email);
+
+            Message msg = new()
+            {
+                UserId = selectedUser?.Email,
+                Content = message,
+                SenderId = authenticationState?.User?.Identity?.Name,
+                SentAt = DateTime.Now,
+                ConversationId = conversation.Id,
+                Id = Guid.NewGuid()
+            };
+
+            if (selectedUser is null)
+            {
+                await hubConnection?.SendAsync("ToAll", msg)!;
+            }
+            else
+            {
+                await hubConnection?.SendAsync("MessageThem", msg)!;
+                conversation.Messages.Add(msg);
+            }
+
+            this.message = string.Empty;
+            await InvokeAsync(StateHasChanged);
         }
-        else
+        catch (Exception e)
         {
-            await hubConnection?.SendAsync("MessageThem", message);
+            Console.WriteLine(e);
         }
+    }
 
-        this.message = string.Empty;
-        await InvokeAsync(StateHasChanged);
+    async Task<Conversation?> StartNewConversationIfNotExist(string receiver)
+    {
+        try
+        {
+            var username = authenticationState?.User?.Identity?.Name;
+
+            var existingConversation = _conversations.FirstOrDefault(c =>
+                c.StarterId == username || c.ReceiverId == username);
+
+            if (existingConversation is not null)
+                return existingConversation;
+
+            var newConvesation = new Conversation
+            {
+                StarterId = username,
+                ReceiverId = receiver,
+            };
+
+            var entry = await Context.Conversations.AddAsync(newConvesation);
+            await Context.SaveChangesAsync();
+            return entry.Entity;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return default;
+        }
     }
 
 

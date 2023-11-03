@@ -8,54 +8,72 @@
 <AuthorizeView>
     <Authorized Context="authContext">
         <div class="row">
-
-            <div class="col-6">
-                <h2 class="mb-2"> Send message to <span class="text-primary fw-bolder">@selectedUser?.UserName </span></h2>
-
-                <EditForm Model="message" OnSubmit="SendMessage">
-                    <input @bind="message"/>
-                    <input type="submit" value="Send"/>
-                </EditForm>
-
-                <hr/>
-                <ul>
-                    @if (_messages.Any())
-                    {
-                        foreach (var message in _messages)
-                        {
-                            <li class="alert-info mt-2">
-                                <div class="col-4">
-                                    <h5 class="text-warning fw-bolder mx-2">@message.SenderId</h5>
-                                    <p class="fw-light text-black-50 mx-2">
-                                        @message?.Content
-                                    </p>
-
-                                    <h6 class="text-info fw-bold mx-2"> @message.SentAt.ToShortTimeString()</h6>
-                                </div>
-                            </li>
-                        }
-                    }
-                    else
-                    {
-                        <p>No messages</p>
-                    }
-                </ul>
-            </div>
-            <div class="col-6">
+            <div class="col-3">
                 @foreach (var user in _users)
                 {
-                    <div class="col-2 d-flex" style="display: inline;">
+                    <div class="col d-flex m-1 btn btn-outline-success fw-bold" @onclick="() => SelectUser(user)" style="display: inline;">
                         <h5>@user.UserName</h5>
-                        <a class="btn btn-success text-white fw-bold" @onclick="() => SelectUser(user)">Select</a>
                     </div>
                 }
+            </div>
+            <div class="col-9">
+                <div>
+                    <h2 class="mb-2">
+                        <span class="text-primary fw-bolder">@selectedUser?.UserName </span>
+                    </h2>
+                    <hr/>
+                </div>
+                <div id="chat-history">
+                    <ul id="chat-history-messages">
+                        @if (_messages.Any())
+                        {
+                            foreach (var message in _messages)
+                            {
+                                @if (message.SenderId != authContext?.User?.Identity?.Name)
+                                {
+                                    <li class="alert-primary mt-4 chat-message-in">
+                                        <div class="col-4">
+                                            <h5 class="text-warning fw-bolder mx-2">@message.SenderId</h5>
+                                            <p class="fw-light text-black-50 mx-2">
+                                                @message?.Content
+                                            </p>
+
+                                            <h6 class="text-info fw-lighter mx-2"> @message.SentAt.ToShortTimeString()</h6>
+                                        </div>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li class="alert-info mt-4 chat-message-out">
+                                        <div class="col-4">
+                                            <h5 class="text-warning fw-bolder mx-2">@message.SenderId</h5>
+                                            <p class="fw-light text-black-50 mx-2">
+                                                @message?.Content
+                                            </p>
+
+                                            <h6 class="text-info fw-lighter mx-2"> @message.SentAt.ToShortTimeString()</h6>
+                                        </div>
+                                    </li>
+                                }
+                               
+                            }
+                        }
+                        else
+                        {
+                            <p>No messages</p>
+                        }
+                    </ul>
+                </div>
+
+                <div id="input-message">
+                    <EditForm Model="message" OnSubmit="SendMessage" class="d-flex">
+                        <input @bind="message" class="form-control p-2" placeholder="type your message here..."/>
+                        <input type="submit" value="Send" class="btn btn-secondary"/>
+                    </EditForm>
+                </div>
+
+
             </div>
         </div>
     </Authorized>
 </AuthorizeView>
-
-
-@code {
-
-
-}

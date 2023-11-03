@@ -1,0 +1,27 @@
+#input-message{
+    position: absolute;
+    width: 70vw;
+}
+
+#chat-history{
+    width: 70vw;
+    height: 66vh;
+    overflow-y: scroll;
+}
+
+#chat-history-messages li{
+    list-style: none;
+    margin-right: 1em;
+}
+
+.chat-message-in{
+    width: 40vw;
+    position: relative;
+    margin-left: 24vw;
+    padding: 1%;
+}
+
+.chat-message-out{
+    width: 40vw;
+    padding: 1%;
+}

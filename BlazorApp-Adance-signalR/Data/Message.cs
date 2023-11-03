@@ -7,9 +7,7 @@ namespace BlazorApp_Adance_signalR.Data;
 
 public class Message
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-    public Guid Id { get; set; }
+    [Key] public Guid Id { get; set; }
 
     /// <summary>
     /// The destination user

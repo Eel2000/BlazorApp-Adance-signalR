@@ -147,9 +147,14 @@ public partial class Index : ComponentBase, IDisposable
         selectedUser = user;
 
         var conversations =
-            _conversations.FirstOrDefault(c => (c.StarterId == authenticationState?.User?.Identity?.Name
-                                               && c.ReceiverId == selectedUser.Email) || 
-                                               c.ReceiverId == authenticationState?.User?.Identity?.Name);
+            _conversations.FirstOrDefault(c => c.StarterId == authenticationState?.User?.Identity?.Name
+                                                && c.ReceiverId == selectedUser.Email);
+        if (conversations is null)
+        {
+            conversations = _conversations.FirstOrDefault(c =>
+                c.StarterId == selectedUser.Email && c.ReceiverId == authenticationState?.User?.Identity?.Name);
+        }
+        
 
         if (conversations is not null)
             _messages = new(conversations?.Messages);
@@ -206,7 +211,8 @@ public partial class Index : ComponentBase, IDisposable
             var username = authenticationState?.User?.Identity?.Name;
 
             var existingConversation = _conversations.FirstOrDefault(c =>
-                c.StarterId == username || c.ReceiverId == username);
+                (c.StarterId == username && c.ReceiverId == receiver) ||
+                (c.StarterId == receiver && c.ReceiverId == username));
 
             if (existingConversation is not null)
                 return existingConversation;

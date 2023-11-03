@@ -5,10 +5,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using BlazorApp_Adance_signalR.Hubs;
+using BlazorApp_Adance_signalR.States;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("AuthenticationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'AuthenticationDbContextConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("AuthenticationDbContextConnection") ??
+                       throw new InvalidOperationException(
+                           "Connection string 'AuthenticationDbContextConnection' not found.");
 
 builder.Services.AddDbContext<AuthenticationDbContext>(options => options.UseSqlite(connectionString));
 
@@ -27,7 +30,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 
-builder.Services.AddSingleton<WeatherForecastService>();
+builder.Services.AddSingleton<GlobalAppState>();
+builder.Services.AddScoped<SessionAppState>();
 
 var app = builder.Build();
 
